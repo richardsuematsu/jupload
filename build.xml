@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- ====================================================================== -->
+<!-- Ant build file (http://ant.apache.org/) for Ant 1.6.2 or above.        -->
+<!-- ====================================================================== -->
+
+<project name="jupload" default="eclipse_package" basedir=".">
+
+	<!-- Let's load the system properties -->
+	<property environment="env" />
+
+	<!-- Definition of the classpath for ant-contrib tasks -->
+	<path id="ant.tasks.ant-contrib.classpath">
+		<fileset dir="lib/ant">
+			<include name="ant-contrib.jar" />
+		</fileset>
+	</path>
+	<taskdef resource="net/sf/antcontrib/antcontrib.properties"
+	         classpathref="ant.tasks.ant-contrib.classpath" />
+
+	<!-- ====================================================================== -->
+	<!-- Import maven-build.xml into the current project                        -->
+	<!-- ====================================================================== -->
+
+	<import file="maven-build.xml" />
+
+	<!-- ====================================================================== -->
+	<!-- Help target                                                            -->
+	<!-- ====================================================================== -->
+
+	<target name="help">
+		<echo message="Please run: $ant -projecthelp" />
+	</target>
+
+	<!-- ====================================================================== -->
+	<!-- prepare_resources target - allows action before simulated maven build  -->
+	<!-- ====================================================================== -->
+
+	<target name="prepare_resources">
+		<!-- Default value for the svn.properties properties. You should 
+		override by setting them before calling the ant build -->
+		<property name="pom.version" value="pom.version undefined" />
+		<property name="timestamp" value="1" />
+		<property name="svn.revision" value="" />
+		<!-- Let's calculate an ant build number -->
+		<mkdir dir="${maven.build.outputDir}" />
+		<buildnumber file="target/build.number" />
+		<property name="buildNumber" value="${build.number}" />
+		<property name="pom.version" value="pom.version undefined" />
+		<!-- Let's copy and update properties in the svn.properties file -->
+		<copy file="${maven.build.resourceDir.0}/conf/svn.properties"
+		      todir="${maven.build.outputDir}/conf"
+		      filtering="true"
+		      overwrite="true">
+			<filterset id="myFilterSet" begintoken="{" endtoken="}">
+				<filter token="pom.version" value="${pom.version}" />
+				<filter token="timestamp" value="${timestamp}" />
+				<filter token="buildNumber" value="${buildNumber}" />
+			</filterset>
+			<filterset id="myFilterSet" begintoken="=" endtoken="$">
+				<filter token=" " value="= " />
+			</filterset>
+		</copy>
+	</target>
+
+	<!-- ====================================================================== -->
+	<!-- Specific eclipse target, to create the classpath allowing eclipse      -->
+	<!-- compiler to run without error                                          -->
+	<!-- ====================================================================== -->
+
+	<!-- Copy one jar file to the ./lib folder, and add it to the eclipse classpath -->
+	<target name="add_one_jar_to_eclipse_classpath">
+		<echo message="Adding ${jarFile} to eclipse classpath" level="info" />
+		<!-- Copy the given jar file, useless ? -->
+		<!-- copy file="${jarFile}" todir="./lib" /   -->
+		<!-- 
+			Add the copied file to the eclipse classpath. We must do that by copying to a new file (to have an actual replacement), 
+			with a new placeholder (to avoid an infinite loop).
+		-->
+		<copy file=".classpath"
+		      tofile=".classpath.tmp"
+		      verbose="true"
+		      overwrite="true">
+			<filterset begintoken="#" endtoken="#">
+				<filter token="dependencyJarFile"
+				        value="&lt;classpathentry kind=&quot;lib&quot; path=&quot;${jarFile}&quot;/&gt; 
+					#dependencyJarFile2#" />
+			</filterset>
+		</copy>
+		<copy file=".classpath.tmp"
+		      tofile=".classpath"
+		      verbose="true"
+		      overwrite="true">
+			<filterset begintoken="#" endtoken="#">
+				<filter token="dependencyJarFile2"
+				        value="#dependencyJarFile#" />
+			</filterset>
+		</copy>
+		<delete file=".classpath.tmp" />
+	</target>
+
+	<target name="create_eclipse_classpath">
+		<!-- Let's override the .classpath, by the relevant template -->
+		<copy file=".classpath_template_for_and_build"
+		      tofile=".classpath"
+		      overwrite="true" />
+
+		<!-- We add all dependency jar files, to the classpath, so that eclipse internal compiler works -->
+		<delete file=".classpath.tmp" />
+		<foreach target="add_one_jar_to_eclipse_classpath"
+		         param="jarFile"
+		         trim="true">
+			<path refid="build.test.classpath" />
+		</foreach>
+		<!-- Let's remove the placeholder -->
+
+		<copy file=".classpath" tofile=".classpath.tmp" overwrite="true">
+			<filterset begintoken="#" endtoken="#">
+				<filter token="dependencyJarFile" value="" />
+			</filterset>
+		</copy>
+		<move file=".classpath.tmp" tofile=".classpath" overwrite="true" />
+	</target>
+
+	<target name="refresh_if_eclipse" if="eclipse.running">
+		<eclipse.refreshLocal resource="jupload" depth="infinite" />
+	</target>
+
+	<!-- =================================================================================
+		Start of Signing applet jar
+		Various targets to sign the applet, depending on the given parameters 
+	================================================================================== -->
+	<target name="sign_jar"
+	        depends="sign_jar_without_keypass, sign_jar_with_keypass" />
+	<target name="sign_jar_without_keypass" unless="jupload.keystore.keypass">
+		<echo message="Jar: ${maven.build.dir}/${maven.build.finalName}.jar"
+		      level="info" />
+		<echo message="Keystore: ${jupload.keystore.filename}" level="info" />
+		<echo message="Alias: ${jupload.keystore.alias}" level="info" />
+		<signjar jar="${maven.build.dir}/${maven.build.finalName}.jar"
+		         alias="${jupload.keystore.alias}"
+		         storepass="${jupload.keystore.storepass}"
+		         keystore="${jupload.keystore.filename}" />
+	</target>
+	<target name="sign_jar_with_keypass" if="jupload.keystore.keypass">
+		<signjar jar="${maven.build.dir}/${maven.build.finalName}.jar"
+		         alias="${jupload.keystore.alias}"
+		         storepass="${jupload.keystore.storepass}"
+		         keystore="${jupload.keystore.filename}"
+		         keypass="${jupload.keystore.keypass}"
+		         verbose="true" />
+	</target>
+	<!-- =================================================================================
+		End of Signing applet jar 
+	================================================================================== -->
+
+	<!-- =================================================================================
+		Start of post compile actions
+		Copy of the applet jar file to the /site and /target/site/ folders, if they exist 
+	================================================================================== -->
+	<target name="post_compile_action"
+	        depends="check_site_folders,copy_jar_to_site, copy_jar_to_target_site" />
+	<target name="check_site_folders">
+		<available file="site" property="jupload.available.site" />
+		<available file="target/site"
+		           property="jupload.available.target.site" />
+	</target>
+	<target name="copy_jar_to_site" if="jupload.available.site">
+		<copy file="${maven.build.dir}/${maven.build.finalName}.jar"
+		      todir="site" />
+	</target>
+	<target name="copy_jar_to_target_site" if="jupload.available.target.site">
+		<copy file="${maven.build.dir}/${maven.build.finalName}.jar"
+		      todir="target/site" />
+	</target>
+	<!-- =================================================================================
+		End of post compile actions
+	================================================================================== -->
+
+
+	<!-- =================================================================================
+		The main goal ! 
+	================================================================================== -->
+	<target name="eclipse_package"
+	        depends="get-deps, create_eclipse_classpath, prepare_resources, package, refresh_if_eclipse, sign_jar, post_compile_action" />
+
+</project>

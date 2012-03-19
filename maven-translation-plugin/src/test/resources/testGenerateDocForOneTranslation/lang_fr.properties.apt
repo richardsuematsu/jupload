@@ -1,0 +1,23 @@
+           --------------------
+           JUpload - File Upload Applet - Applet translation (French_for_test)
+           --------------------
+           --------------------
+           --------------------
+
+
+
+Translation for the applet part
+
+--------------
+
+#A specific comment for this file. Should be removed in the generated file.
+aKey = C'est une clef
+aLastKey = C'est une dernière clef\nAvec un passage à la ligne!
+
+# these line will go to the beginning of the file, after plugin execution.
+language = French (for test)
+contributor = The French contributor
+
+
+--------------
+

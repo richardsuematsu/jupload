@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<project>
+	<body>
+		<menu name="Translation documentation">
+			<item name="Index this web site" href="index.html" />
+			<item name="Translation overview" href="overview.html" />
+		</menu>
+
+		<links>
+			<item name="Maven" href="http://maven.apache.org/" />
+		</links>
+
+		${reports}
+
+	</body>
+</project>

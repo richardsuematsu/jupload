@@ -1,0 +1,13 @@
+#This is a comment
+#Another commented line
+
+language = French (for test)
+contributor = The French contributor
+
+aKey = C'est une clef
+
+#MISSING  anotherKey = This is another key.Also with a new line in it, and also with a \n character!
+
+#A last comment
+
+aLastKey = C'est une derni\u00e8re clef\nAvec un passage \u00e0 la ligne!

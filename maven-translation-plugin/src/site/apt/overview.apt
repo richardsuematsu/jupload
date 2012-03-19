@@ -1,0 +1,98 @@
+           --------------------
+           JUpload - jupload-translation - Translation overview
+           --------------------
+           --------------------
+           --------------------
+
+
+  <<Content>>
+  
+  * {{{A}General presentation}}
+  
+  * {{{B}Why this plugin was developped?}}
+  
+  * {{{C}What does it do?}}
+  
+
+           
+{A}. General presentation
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  By default, __the plugin is not activated__. That is: if you execute a standard Maven compilation, the applet code is
+  compiled with the translation files, stored in JUpload package, whether you are using a JUpload release package, or 
+  a checkout from JUpload SVN. If you __updated translation__, please read the {{{./howto-useit.html}HowTo use it}} page. 
+
+  This plugin manages the translation files. It makes it easy for translator to produce new translation, and (more difficult) 
+  to update existing translation, especially for adding the missing translation files.
+  
+  The plugin is based on two set of files:
+  
+  * The ''./jupload-translation/src/lang'' folder contains the human readable files. The translator should work on these
+  files only. These files are formatted by the plugin. So all files are generated, according to the lang.property file. 
+  In each translation, each missing text (based on the lang.property file) is replaced by a commented line, beginning by
+  MISSING, and containing the English translation. It makes it easy for translator to update an existing translation.  
+  
+  * The ''./jupload-translation/src/resources/lang'' are generated from the previous one. They are used only by java code, 
+  during the applet execution. They should not be used by translators.
+
+
+{B}. Why this plugin was developped?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Missing text
+
+  JUpload is widely translated (more than 20 languages). But most translation are partial ones: new text may appear in
+  new JUpload version, and the existing translation are not maintained by the original translator, who may have no need 
+  to upgrade to the last JUpload version. To make this easier, previous version contained a translation formatter which 
+  generates comments like this one: 
+  
+---------------------
+  #MISSING key = The English translation
+---------------------
+
+* Unicode formatting
+  
+  But then, communicating new translation is not easy: the need is to send to the project administrator new translation. Java 
+  properties behavior implies that these translation are translated in 'native' text (that is: all non-ASCII characters are 
+  transformed in \uNNNN strings, where NNNN is the unicode code for these characters). The result is hardly understandable,
+  and make it hard for translator to contribute to existing translation.
+  
+   
+* Translation code complexity
+
+  In previous version, the managing of the translation files was done in ant scripts. These scripts are complex to manage
+  and can hardly be modified by other people.
+  
+  The use of maven plugin make this code be in Java. It is then easier to understand, and fully covered by JUnit tests.  
+  
+  One consequence is that it's difficult to identify the lacking   
+
+  
+{C}. What does it do?
+  
+    The plugins follows these steps, to manage the translation files:
+    
+    * It reads all input files, from the input folder (default to: ./jupload-translation/src/lang folder)
+    
+    * The lang.properties is the default language, in the applet code. It is also the format template for the jupload-translation
+    plugin
+    
+    * All files from the input folder, are formatted according to the lang.properties file, and stored in UTF-8 (that is, 
+    in human readable format) in the work folder (default to ./jupload-translation/target/translation).
+    
+    * Once all files are successfully translated:
+    
+      * The UTF-8 files are copied "as is" to the input folder. This folder is 
+      the 'true' source for further translation improvement.
+      
+      * The UTF-8 are translated in ASCII containing unicode (\uNNNN strings) files, which are written into the resourcesLang 
+      folder (default to ./jupload-translation/src/resources/lang), where the Java code expects them for use during 
+      the applet execution.
+      
+      []
+
+    []
+    
+    __Note:__ this last step should not exist, with maven build. All generated code should be out of SVN. That is: these
+    generated files should be written directly beneath the target folder. This behavior is kept to maintain compatibility 
+    with ant build. This also makes JUpload be a mono-module project, which make it easier to handle for most people. 
